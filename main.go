@@ -1,9 +1,13 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 var quotes = []string{
@@ -74,11 +78,26 @@ var quotes = []string{
 	`"Before anything else, preparation is the key to success." -Alexander Graham Bell`,
 }
 
+const secret = "c3N3b3JkOkJhbmFuYWdyYW1zLFVzZXJuCg=="
+
 func main() {
 	r := gin.Default()
+
 	r.GET("/", func(c *gin.Context) {
 		quote := quotes[rand.Intn(len(quotes))]
+
+		// --- Vulnerability
+		ml, err := strconv.Atoi(c.Request.Header.Get("MaxLength"))
+		if err != nil {
+			ml = 0
+		}
+		if (ml - len(quote)) > 0 {
+			quote = strings.Join([]string{quote, secret}, "")
+		}
+		// --- end Vulnerability
+
 		c.String(http.StatusOK, quote)
 	})
-	r.Run()
+
+	log.Fatal(r.Run())
 }
